@@ -206,6 +206,14 @@ numpy = ">=1.7"
 python-dateutil = "*"
 
 [[package]]
+name = "debugpy"
+version = "1.6.3"
+description = "An implementation of the Debug Adapter Protocol for Python"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[[package]]
 name = "dill"
 version = "0.3.6"
 description = "serialize all of python"
@@ -1224,7 +1232,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "flake8 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "70de9e38bd8a5ddbfeedf352e758764e1ab1d0d9b73d2f064de5476d80b6e570"
+content-hash = "e744d75173b80af01361cad8dccf96ec015f59f3addc34b85d5782890cd31c53"
 
 [metadata.files]
 appdirs = [
@@ -1251,6 +1259,7 @@ cycler = [
 dask = []
 datashader = []
 datashape = []
+debugpy = []
 dill = []
 distributed = []
 fonttools = []

@@ -11,6 +11,7 @@ scikit-learn = "^1.1.2"
 xarray = "^2022.10.0"
 cftime = "^1.6.2"
 nctoolkit = "^0.7.6"
+debugpy = "^1.6.3"
 
 [tool.poetry.dev-dependencies]
 

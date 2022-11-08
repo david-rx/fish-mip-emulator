@@ -16,8 +16,6 @@ TEST_INPUTS_PATH_TOS = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_tos_
 TEST_INPUTS_PATH_INTPP = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_intpp_onedeg_global_annual_2015_2100.nc"
 TEST_OUTPUTS_PATH = "../Outputs/MACROECOLOGICAL/macroecological_gfdl-esm4_nobasd_ssp585_nat_default_tcb_global_annual_2015_2100.nc"
 
-
-
 class MacroecologicalDataLoader:
     def __init__(self, inputs_path_tos: str, outputs_path: str, inputs_path_intpp, mask_tos: bool = False, mask_intpp: bool = False) -> None:
         """
@@ -26,6 +24,7 @@ class MacroecologicalDataLoader:
         inputs_dataset_tos = netCDF4.Dataset(inputs_path_tos)
         inputs_dataset_intpp = netCDF4.Dataset(inputs_path_intpp)
         outputs_dataset = netCDF4.Dataset(outputs_path)
+        print(outputs_dataset.variables)
 
         tos = np.asarray(inputs_dataset_tos["tos"]).flatten().reshape(-1, 1) # tos is temperature of surface (input feature)
         intpp = np.asarray(inputs_dataset_intpp["intpp"]).flatten().reshape(-1, 1) #primary production (input feature)
@@ -37,7 +36,7 @@ class MacroecologicalDataLoader:
         elif mask_tos:
             features_array = intpp
         else:
-            features_array = np.concatenate([tos, intpp], axis =1)
+            features_array = np.concatenate([tos, intpp], axis=1)
 
         features_array, self.labels = filter(features_array, labels, inputs_dataset_tos["tos"]._FillValue)
 
@@ -47,7 +46,6 @@ class MacroecologicalDataLoader:
         print(f"features shape: {self.features.shape}")
         print(f"labels shape: {self.labels.shape}")
 
-        print(f"tcb output shape {tcb.shape}")
 
     def load_train_eval(self):
         """

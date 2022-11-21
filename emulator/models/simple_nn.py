@@ -1,3 +1,4 @@
+from emulator.models.model import Model
 import torch
 import torch.nn as nn
 import torch.nn.Functional as F
@@ -7,7 +8,20 @@ import torch.optim as optim
 import numpy as np
 
 WIDTH = 128
-BATCH_SIZE = 2048
+BATCH_SIZE = 4096
+
+class TensorTupleDataset(Dataset):
+
+    def __init__(self, first_tensor: torch.Tensor, second_tensor: torch.Tensor) -> None:
+        self.first_tensor = first_tensor
+        self.second_tensor = second_tensor
+
+    def __len__(self):
+        return len(self.first_tensor)
+
+    def __getitem__(self, index: int) -> torch.tensor:
+        return self.first_tensor[index], self.second_tensor[index]
+
 
 class SimpleNN(torch.module):
 
@@ -23,7 +37,7 @@ class SimpleNN(torch.module):
         x = F.relu(self.fc2(x))
         x = self.final(x)
 
-class NNRegressor:
+class NNRegressor(Model):
     """
     Makes a pytorch neural network compatible with the SKLEARN api.
     """
@@ -37,13 +51,13 @@ class NNRegressor:
 
     def train(self, train_data: torch.tensor, train_labels: torch.tensor):
 
-        train_data = train_data.to(self.device)
-        train_labels = train_labels.to(self.device)
-        dataset = Dataset(train_data, BATCH_SIZE)
+        dataset = TensorTupleDataset(first_tensor = train_data, second_tensor=train_labels)
+        dataloader = torch.utils.data.Dataloader(dataset, batch_size = BATCH_SIZE)
 
-        for batch in dataset:
-            predictions = self.forward(batch[0])
-            loss = self.loss_fn(predictions, batch[1])
+        for batch in dataloader:
+            inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
+            predictions = self.forward(inputs)
+            loss = self.loss_fn(predictions, labels)
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()

@@ -1,6 +1,8 @@
 import numpy as np
 
-class RandomGuesser:
+from emulator.models.model import Model
+
+class RandomGuesser(Model):
 
     def __init__(self) -> None:
         self.train_mean = 0

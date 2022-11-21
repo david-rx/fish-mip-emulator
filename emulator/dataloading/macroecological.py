@@ -5,7 +5,8 @@ MACROECOLOGICAL Paper:
 """
 import netCDF4
 import numpy as np
-from sklearn.model_selection import train_test_split
+
+from emulator.dataloading.dataloader import Dataloader
 
 
 INPUTS_PATH_TOS = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_historical_tos_onedeg_global_annual_1950_2014.nc"
@@ -16,7 +17,7 @@ TEST_INPUTS_PATH_TOS = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_tos_
 TEST_INPUTS_PATH_INTPP = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_intpp_onedeg_global_annual_2015_2100.nc"
 TEST_OUTPUTS_PATH = "../Outputs/MACROECOLOGICAL/macroecological_gfdl-esm4_nobasd_ssp585_nat_default_tcb_global_annual_2015_2100.nc"
 
-class MacroecologicalDataLoader:
+class MacroecologicalDataLoader(Dataloader):
     def __init__(self, inputs_path_tos: str, outputs_path: str, inputs_path_intpp, mask_tos: bool = False, mask_intpp: bool = False) -> None:
         """
         Read NetCDF datasets.
@@ -45,14 +46,6 @@ class MacroecologicalDataLoader:
 
         print(f"features shape: {self.features.shape}")
         print(f"labels shape: {self.labels.shape}")
-
-
-    def load_train_eval(self):
-        """
-        Gets the train and eval splits for inputs and outputs
-        """
-        tos_train, tos_eval, tcb_train, tcb_eval = train_test_split(self.features, self.labels, test_size=0.1)
-        return tos_train, tos_eval, tcb_train, tcb_eval
 
 def filter(input_array, label_array, fill_value: float):
     """

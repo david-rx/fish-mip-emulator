@@ -25,7 +25,6 @@ class MacroecologicalDataLoader(Dataloader):
         inputs_dataset_tos = netCDF4.Dataset(inputs_path_tos)
         inputs_dataset_intpp = netCDF4.Dataset(inputs_path_intpp)
         outputs_dataset = netCDF4.Dataset(outputs_path)
-        print(outputs_dataset.variables)
 
         tos = np.asarray(inputs_dataset_tos["tos"]).flatten().reshape(-1, 1) # tos is temperature of surface (input feature)
         intpp = np.asarray(inputs_dataset_intpp["intpp"]).flatten().reshape(-1, 1) #primary production (input feature)
@@ -34,10 +33,13 @@ class MacroecologicalDataLoader(Dataloader):
         labels = tcb
         if mask_intpp:
             features_array = tos
+            fill_values = (inputs_dataset_tos["tos"]._FillValue,)
         elif mask_tos:
             features_array = intpp
+            fill_values = (inputs_dataset_intpp["intpp"]._FillValue,)
         else:
             features_array = np.concatenate([tos, intpp], axis=1)
+            fill_values = (inputs_dataset_tos["tos"]._FillValue, inputs_dataset_intpp["intpp"]._FillValue)
 
         features_array, self.labels = filter(features_array, labels, inputs_dataset_tos["tos"]._FillValue)
 
@@ -46,14 +48,3 @@ class MacroecologicalDataLoader(Dataloader):
 
         print(f"features shape: {self.features.shape}")
         print(f"labels shape: {self.labels.shape}")
-
-def filter(input_array, label_array, fill_value: float):
-    """
-    Some array elements
-    """
-    print(f"input array shape: {input_array.shape} and label shape {label_array.shape}")
-    if input_array.shape[-1] == 2:
-        filter_array = np.array([row[0] != fill_value and row[1] != fill_value for row in input_array])
-    else:
-        filter_array = np.array([row[0] != fill_value for row in input_array])
-    return input_array[filter_array], label_array[filter_array]

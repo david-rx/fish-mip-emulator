@@ -55,20 +55,3 @@ class BoatsDataloader(Dataloader):
         print(f"labels max and min: {max(self.labels)} and {min(self.labels)}")
         print(f"features max and min: {self.features.min()} and {self.features.min()}")
 
-def dep_filter(input_array: np.ndarray, label_array: np.ndarray, first_fill_value: float, second_fill_value: float, label_fill_value: float):
-    """
-    Filter array elements
-    """
-
-    filter_list: List[bool] = []
-    print(f"input array shape: {input_array.shape} and label shape {label_array.shape}")
-    for row, label in zip(input_array, label_array):
-        to_filter = any([val == fill for val, fill in zip(fill_values, row)])
-        if label_fill_value is not None:
-            to_filter = to_filter or label == label_fill_value
-    if input_array.shape[-1] == 2:
-        filter_array = np.array([row[0] != first_fill_value and row[1] != second_fill_value and
-            label[0] != label_fill_value for row, label in zip(input_array, label_array)])
-    else:
-        filter_array = np.array([row[0] != second_fill_value for row in input_array])
-    return input_array[filter_array], label_array[filter_array]

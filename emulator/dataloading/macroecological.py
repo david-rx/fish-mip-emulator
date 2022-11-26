@@ -6,7 +6,7 @@ MACROECOLOGICAL Paper:
 import netCDF4
 import numpy as np
 
-from emulator.dataloading.dataloader import Dataloader
+from emulator.dataloading.dataloader import Dataloader, filter_fill
 
 
 INPUTS_PATH_TOS = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_historical_tos_onedeg_global_annual_1950_2014.nc"
@@ -41,7 +41,7 @@ class MacroecologicalDataLoader(Dataloader):
             features_array = np.concatenate([tos, intpp], axis=1)
             fill_values = (inputs_dataset_tos["tos"]._FillValue, inputs_dataset_intpp["intpp"]._FillValue)
 
-        features_array, self.labels = filter(features_array, labels, inputs_dataset_tos["tos"]._FillValue)
+        features_array, self.labels = filter_fill(features_array, labels, fill_values=fill_values)
 
         self.features = features_array.reshape(-1, 2 if not mask_tos and not mask_intpp else 1)
         self.labels = self.labels.reshape(-1, 1)

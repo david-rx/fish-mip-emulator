@@ -67,6 +67,12 @@ class SimpleNN(nn.Module):
         x = self.final(x)
         return x
 
+    def save(self, path: str) -> None:
+        torch.save(self.state_dict(), path)
+
+    def load(self, path: str) -> None:
+        self.load_state_dict(torch.load(path))
+
 class NNRegressor(Model):
     """
     Makes a pytorch neural network compatible with the SKLEARN api.

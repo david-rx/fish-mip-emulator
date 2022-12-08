@@ -50,7 +50,7 @@ class BoatsDataloader(Dataloader):
 
         if debug:
             if by_period:
-                keep_shape = 2
+                keep_shape = 10
             else:
                 keep_shape = starting_shape[1] * starting_shape[2] * 2
             tos = tos[:keep_shape, :]

@@ -12,4 +12,4 @@ class MeanGuesser(Model):
         self.train_mean = train_labels.mean()
 
     def predict(self, data):
-        return np.zeros(data.shape[0]) + self.train_mean
+        return np.zeros((data.shape[0], 1)) + self.train_mean

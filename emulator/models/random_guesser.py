@@ -13,4 +13,4 @@ class RandomGuesser(Model):
         self.train_std = train_labels.std()
 
     def predict(self, data):
-        return np.random.normal(self.train_mean, self.train_std, data.shape[0])
+        return np.random.normal(self.train_mean, self.train_std, (data.shape[0], 1))

@@ -35,16 +35,17 @@ def train(dataset_name: str, test: bool = False) -> None:
         test_dataloader = MacroecologicalDataLoader(inputs_path_tos = TEST_INPUTS_PATH_TOS, outputs_path = TEST_OUTPUTS_PATH, inputs_path_intpp = TEST_INPUTS_PATH_INTPP)
     elif dataset_name == DatasetName.BOATS.value: #boats, for now
         dataloader = BoatsDataloader(inputs_path_tos = INPUTS_PATH_TOS_BOATS, outputs_path = OUTPUTS_PATH_BOATS, inputs_path_intpp = INPUTS_PATH_INTPP_BOATS, debug=False, predict_delta=True)
-        test_dataloader = BoatsDataloader(inputs_path_tos = TEST_INPUTS_PATH_TOS_BOATS, outputs_path = TEST_OUTPUTS_PATH_BOATS, inputs_path_intpp = TEST_INPUTS_PATH_INTPP_BOATS, debug = False, by_period=True, predict_delta=True)
+        test_dataloader = BoatsDataloader(inputs_path_tos = TEST_INPUTS_PATH_TOS_BOATS, outputs_path = TEST_OUTPUTS_PATH_BOATS, inputs_path_intpp = TEST_INPUTS_PATH_INTPP_BOATS, debug = False, by_period=True, predict_delta=False)
     else:
         raise NotImplementedError("No dataloader implemented for dataset with this name!")
     train_features, eval_features, train_labels, eval_labels = dataloader.load_train_eval()
     test_features, test_labels = test_dataloader.features, test_dataloader.labels
+        # eval_features, eval_labels = second_test_dataloader.features, second_test_dataloader.labels
 
     # WARNING: not doing this causes issues with default eps values in NN training
     train_features[:, 1] *= 10 ** 8
     eval_features[:, 1] *= 10 ** 8
-    # test_features[:, 1] *= 10 ** 8
+    test_features[:, :, 1] *= 10 ** 8
     # print(f"intpp mean is {train_features[0:5, 1]}")
 
     # train_df = pd.DataFrame.from_dict({"surface temp": train_features[:, 0], "intpp": train_features[:, 1], "tcb": train_labels[:, 0, ], "prev tcb": train_features[:, 2]})
@@ -54,20 +55,19 @@ def train(dataset_name: str, test: bool = False) -> None:
     print(f"eval mean is {eval_labels.mean()} with stdev {eval_labels.std()}")
 
     #fit models
-    # models = [NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1]), HistGradientBoostingRegressor(max_iter=100)]
-
 
     eval_metrics = [metrics.mean_squared_error, metrics.mean_absolute_error, metrics.r2_score]
+    # NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1]
     # NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1]), HistGradientBoostingRegressor(max_iter=100)
-    models = [RandomGuesser(), MeanGuesser(), LinearRegression(), tree.DecisionTreeRegressor()]
+    models = [RandomGuesser(), MeanGuesser(), LinearRegression(), tree.DecisionTreeRegressor(), HistGradientBoostingRegressor(max_iter=100), NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1])]
     for model in models:
         print("model", model)
         if model.__class__ == NNRegressor:
             model.fit(train_features, train_labels, eval_features, eval_labels)
         else:
             model.fit(train_features, train_labels)
-        eval_by_year(model=model, features=test_features, labels=test_labels, metrics=eval_metrics, dataset_name=dataset_name, teacher_forcing=True)
-
+        eval_by_year(model=model, features=test_features, labels=test_labels, metrics=eval_metrics, dataset_name=dataset_name,
+            teacher_forcing=False, eval_delta=False, predict_delta=True)
 
     model_names = []
     mse_scores = []
@@ -105,7 +105,7 @@ def train(dataset_name: str, test: bool = False) -> None:
     df = pd.DataFrame.from_dict({"Name": model_names, "MSE_Score": mse_scores, "MAE_Score": mae_scores, "R2_Score": r2_scores})
     df.to_csv(os.path.join("outputs/evaluation_results", f"results_{dataset_name}{'_test' if test else ''}.csv"))
 
-def evaluate_model_by_period(all_predictions, all_labels, metrics: List[Callable], model_name: str, dataset_name: str, predict_delta):
+def evaluate_model_by_period(all_predictions, all_labels, metrics: List[Callable], model_name: str, dataset_name: str, eval_delta: bool, teacher_forcing: bool):
     scores = defaultdict(list)
     for predictions, labels in zip(all_predictions, all_labels):
         for metric in metrics:
@@ -115,36 +115,43 @@ def evaluate_model_by_period(all_predictions, all_labels, metrics: List[Callable
         scores["sample pred"].append(predictions[sample_index])
         scores["sample label"].append(labels[sample_index])
     df = pd.DataFrame.from_dict(scores)
-    df.to_csv(os.path.join("outputs/evaluation_results", f"period_results_{dataset_name}_{model_name}{'_delta' if predict_delta else ''}.csv"))
+    df.to_csv(os.path.join("outputs/evaluation_results", f"period_results_{dataset_name}_{model_name}{'_delta' if eval_delta else ''}{'_forced' if teacher_forcing else ''}.csv"))
 
 
 def eval_by_year(model: Model, features: np.ndarray, labels: np.ndarray, metrics, dataset_name: str, predict_delta: bool = True, teacher_forcing = False, eval_delta=False):
-    print(features.shape)
-    # features_by_period = featurs
-    # labels_by_period = labels.reshape(-1, 180 * 360, 1)
+
     autoregessive_feature = None
     all_predictions: List[np.ndarray] = []
-    for period_index, (period_features, period_labels) in enumerate(zip(features, labels)):
+
+
+
+    for period_features, period_labels in zip(features, labels):
+
         if autoregessive_feature is not None:
+            if teacher_forcing:
+                assert np.all(period_features[:, -1] == autoregessive_feature)
             period_features[:, -1] = autoregessive_feature
+
         predictions = model.predict(period_features)
 
-        autoregessive_feature = get_autoregressive_feature(predict_delta=predict_delta, teacher_forcing=teacher_forcing, predictions=predictions, period_labels=period_labels, period_features=period_features)
-        final_predictions = get_final_predictions(predict_delta=eval_delta, predictions=predictions, period_features=period_features)
+        autoregessive_feature = get_autoregressive_feature(eval_delta = eval_delta, predict_delta=predict_delta, teacher_forcing=teacher_forcing, predictions=predictions, period_labels=period_labels, period_features=period_features)
+        final_predictions = get_final_predictions(predict_delta=predict_delta, eval_delta=eval_delta, predictions=predictions, period_features=period_features)
         all_predictions.append(final_predictions)
 
-    evaluate_model_by_period(all_predictions, labels, metrics=metrics, model_name=model.__class__.__name__, dataset_name = dataset_name, predict_delta=True)
+    evaluate_model_by_period(all_predictions, labels, metrics=metrics, model_name=model.__class__.__name__, dataset_name = dataset_name, eval_delta=eval_delta, teacher_forcing=teacher_forcing)
 
-def get_autoregressive_feature(predict_delta: bool, teacher_forcing: bool, period_labels, predictions, period_features):
+def get_autoregressive_feature(predict_delta: bool, eval_delta: bool, teacher_forcing: bool, period_labels, predictions, period_features):
     if teacher_forcing:
+        if eval_delta:
+            return period_labels.reshape(-1) + period_features[:, -1]
         return period_labels.reshape(-1)
-    if predict_delta:   
+    if predict_delta:
         return predictions.reshape(-1) + period_features[:, -1]
     else:
         return predictions.reshape(-1)
 
-def get_final_predictions(predict_delta: bool, predictions, period_features):
-    if predict_delta:
+def get_final_predictions(predict_delta: bool, eval_delta: bool, predictions, period_features):
+    if predict_delta and not eval_delta:
         return predictions.reshape(-1) + period_features[:, -1]
     else:
         return predictions.reshape(-1)

@@ -12,16 +12,19 @@ import torch.optim as optim
 
 import statistics
 import numpy as np
-
 import wandb
+USE_WNB = False
+
+if USE_WNB:
+    wandb.init("simple-nn")
+
 
 
 WIDTH = 256
 BATCH_SIZE = 4 ** 7
-NUM_EPOCHS = 3
+NUM_EPOCHS = 8
 LEARNING_RATE = 0.0001
 
-wandb.init("simple-nn")
 
 class TensorTupleDataset(Dataset):
 
@@ -106,7 +109,8 @@ class NNRegressor(Model):
 
                 if index % log_steps == 0:
                     grad_norm = compute_grad_norm(self.net)
-                    wandb.log({"train loss": loss, "epoch": epoch, "grad norm": grad_norm, "predicted max": predictions.max(), "labels max": labels.max()})
+                    if USE_WNB:
+                        wandb.log({"train loss": loss, "epoch": epoch, "grad norm": grad_norm, "predicted max": predictions.max(), "labels max": labels.max()})
 
                 self.optimizer.step()
                 self.optimizer.zero_grad()
@@ -114,7 +118,8 @@ class NNRegressor(Model):
 
             if evaluation_data is not None:
                 eval_score = self.evaluate(evaluation_data, evaluation_labels)
-                wandb.log({"eval result": eval_score})
+                if USE_WNB:
+                    wandb.log({"eval result": eval_score})
 
         self.net.eval()
 

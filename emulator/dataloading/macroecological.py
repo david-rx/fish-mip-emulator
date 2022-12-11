@@ -9,13 +9,13 @@ import numpy as np
 from emulator.dataloading.dataloader import Dataloader, filter_fill
 
 
-INPUTS_PATH_TOS = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_historical_tos_onedeg_global_annual_1950_2014.nc"
-INPUTS_PATH_INTPP = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_historical_intpp_onedeg_global_annual_1950_2014.nc"
-OUTPUTS_PATH = "../Outputs/MACROECOLOGICAL/macroecological_gfdl-esm4_nobasd_historical_nat_default_tcb_global_annual_1950_2014.nc"
+INPUTS_PATH_TOS = "../Emulator/Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_historical_tos_onedeg_global_annual_1950_2014.nc"
+INPUTS_PATH_INTPP = "../Emulator/Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_historical_intpp_onedeg_global_annual_1950_2014.nc"
+OUTPUTS_PATH = "../Emulator/Outputs/MACROECOLOGICAL/macroecological_gfdl-esm4_nobasd_historical_nat_default_tcb_global_annual_1950_2014.nc"
 
-TEST_INPUTS_PATH_TOS = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_tos_onedeg_global_annual_2015_2100.nc"
-TEST_INPUTS_PATH_INTPP = "../Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_intpp_onedeg_global_annual_2015_2100.nc"
-TEST_OUTPUTS_PATH = "../Outputs/MACROECOLOGICAL/macroecological_gfdl-esm4_nobasd_ssp585_nat_default_tcb_global_annual_2015_2100.nc"
+TEST_INPUTS_PATH_TOS = "../Emulator/Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_tos_onedeg_global_annual_2015_2100.nc"
+TEST_INPUTS_PATH_INTPP = "../Emulator/Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_intpp_onedeg_global_annual_2015_2100.nc"
+TEST_OUTPUTS_PATH = "../Emulator/Outputs/MACROECOLOGICAL/macroecological_gfdl-esm4_nobasd_ssp585_nat_default_tcb_global_annual_2015_2100.nc"
 
 class MacroecologicalDataLoader(Dataloader):
     def __init__(self, inputs_path_tos: str, outputs_path: str, inputs_path_intpp, mask_tos: bool = False, mask_intpp: bool = False) -> None:

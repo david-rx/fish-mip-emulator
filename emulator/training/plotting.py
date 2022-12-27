@@ -73,5 +73,5 @@ def plot_animated_map(predictions: List[float], labels: List[float], latitudes: 
 
     anim = animation.FuncAnimation(fig, update, frames=np.arange(0, len(predictions)), interval=500)
 
-    anim.save(os.path.join("outputs/visualizations", f"animated_{model_name}_{dataset_name}_map.gif"), dpi=80, writer='Pillow')
+    anim.save(os.path.join(f"outputs/visualizations{'_contextual' if contextual else ''}", f"animated_{model_name}_{dataset_name}_map.gif"), dpi=80, writer='Pillow')
     plt.close(fig)

@@ -72,9 +72,8 @@ class BoatsDataloader(Dataloader):
         self.labels = labels
         
         if boats_config.debug:
-            self.features = self.features[0:4]
-            self.labels = self.labels[0:4]
-        print(type(super()))
+            self.features = self.features[0:240]
+            self.labels = self.labels[0:240]
         super()._print_stats()
 
     def get_features_by_period(self, inputs_dataset_tos, inputs_dataset_intpp, outputs_dataset, predict_delta: bool) -> Tuple[np.ndarray, np.ndarray]:

@@ -36,6 +36,7 @@ def evaluate_model_by_period(all_predictions, all_labels, metrics: List[Callable
     print(f"pred shapes: len: {len(all_predictions)}, 1st shape{all_predictions[0].shape}")
     # print(f"label shapes: len: {len(all_labels)}, 1st shape{all_labels[0].shape}")
     by_period_overall_results(all_predictions, all_labels, metrics)
+    print("first vs last", np.mean(all_predictions[0] - all_predictions[-1]))
     print(f"results on first 120: ")
     by_period_overall_results(all_predictions[0:120], all_labels[0:120], metrics)
     print(f"results on last 120: ")
@@ -44,6 +45,8 @@ def evaluate_model_by_period(all_predictions, all_labels, metrics: List[Callable
 
     yearly_predictions = all_predictions[0:len(all_predictions):12]
     yearly_labels = all_labels[0:len(all_labels):12]
+    print(f"yearly predictions shape len {len(yearly_predictions)} shape {yearly_predictions[0].shape}")
+    print(f"yearly labels len {len(yearly_labels)} shape {yearly_labels[0].shape}")
 
     latitude_features_single_period  = np.repeat(np.expand_dims(np.expand_dims(np.arange(90, -89.5, -1), axis=1), axis=0), 360, axis=-1)
     num_periods = len(yearly_labels)

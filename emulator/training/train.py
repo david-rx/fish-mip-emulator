@@ -14,6 +14,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVR
 from sklearn.preprocessing import MinMaxScaler
 from emulator.models.mean_guesser import MeanGuesser
+from emulator.models.nn.lstm import make_lstm_features, make_lstm_features_3d
 from emulator.models.pca import PcaSingleton
 from emulator.models.random_guesser import RandomGuesser
 import xgboost as xgb
@@ -41,13 +42,16 @@ def train(dataset_name: str, train_config: BoatsConfig, test_config: BoatsConfig
         raise NotImplementedError("No dataloader implemented for dataset with this name!")
     train_features, eval_features, train_labels, eval_labels = dataloader.load_train_eval()
     test_features, test_labels = test_dataloader.features, test_dataloader.labels
+    
+
     pca = None
     scaler = MinMaxScaler()
     if train_config.contextual:
         pca = PcaSingleton()
-        train_features = pca.run(train_features)
-        test_features = pca.run(test_features)
-        eval_features = pca.run(eval_features)
+        train_features = scaler.fit_transform(pca.run(train_features))
+        test_features = scaler.transform(pca.run(test_features))
+        eval_features = scaler.transform(pca.run(eval_features))
+
     # test_features = pca.run(ss.transform(test_features))
     # eval_features = pca.run(ss.transform(eval_features))
 
@@ -73,15 +77,25 @@ def train(dataset_name: str, train_config: BoatsConfig, test_config: BoatsConfig
     print(f"test features mean is {test_features.mean()} with stdev {test_features.std()}")
 
     #fit models
-    # 
     eval_metrics = [metrics.mean_squared_error, metrics.mean_absolute_error, metrics.r2_score]
-    models = [tree.DecisionTreeRegressor(), XGBRegressor(objective='reg:squarederror'), NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1])]
+    # models = [tree.DecisionTreeRegressor(), XGBRegressor(objective='reg:squarederror'), NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1])]
         # RandomForestRegressor(), 
         # HistGradientBoostingRegressor(max_iter=100), NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1])]
+    if train_config.contextual:
+        nn_features_train, nn_labels_train = make_lstm_features(train_features, train_labels)
+        nn_features_eval, nn_labels_eval = make_lstm_features(eval_features, eval_labels)
+        num_labels = nn_labels_train.shape[-1]
+    elif train_config.by_period:
+        nn_features_train, nn_labels_train = make_lstm_features_3d(train_features, train_labels)
+        nn_features_eval, nn_labels_eval = make_lstm_features_3d(eval_features, eval_labels)
+        num_labels = 1
+
+
+    models = [NNRegressor(input_size=nn_features_train.shape[-1], output_size=num_labels, model="lstm")]
     for model in models:
         print("model", model)
-        if model.__class__ == NNRegressor:  
-            model.fit(train_features, train_labels, eval_features, eval_labels)
+        if model.__class__ == NNRegressor:
+            model.fit(nn_features_eval, nn_labels_eval, nn_features_eval, nn_labels_eval)
         # elif model.__class__ in [RandomForestRegressor, HistGradientBoostingRegressor]:
         #     model.fit(train_features, train_labels.reshape(-1))
         else:
@@ -111,22 +125,30 @@ def eval_by_period(model: Model, features: np.ndarray, labels: np.ndarray, metri
     all_inter_predictions: List[np.ndarray] = []
     first_third = int(features[0].shape[0] / 3)
 
-    for period_features, period_labels in zip(features, labels):
+    if model.__class__ == NNRegressor and model.model == "lstm":
+        if features.ndim == 3:
+            lstm_features, lstm_labels = make_lstm_features_3d(features, labels)
+        else:
+            lstm_features, lstm_labels = make_lstm_features(features, labels)
+        all_predictions = model.predict(lstm_features).reshape(lstm_labels.shape)
+        labels = lstm_labels
+    else:
+        for period_features, period_labels in zip(features, labels):
 
-        if autoregessive_feature is not None:
-            period_features[:, 2] = autoregessive_feature
-        
-        if pca:
-            period_features = pca.run(period_features.reshape(1, period_features.shape[0]))
-        elif period_features.ndim == 1:
-            period_features = period_features.reshape(1, -1)
+            if autoregessive_feature is not None:
+                period_features[:, 2] = autoregessive_feature
+            
+            if pca:
+                period_features = pca.run(period_features.reshape(1, period_features.shape[0]))
+            elif period_features.ndim == 1:
+                period_features = period_features.reshape(1, -1)
 
-        predictions = model.predict(period_features)
-        all_inter_predictions.append(predictions)
-        if autoregressive:
-            autoregessive_feature = get_autoregressive_feature(eval_delta = eval_delta, predict_delta=predict_delta, teacher_forcing=teacher_forcing, predictions=predictions, period_labels=period_labels, period_features=period_features)
-        final_predictions = get_final_predictions(predict_delta=predict_delta, eval_delta=eval_delta, predictions=predictions, period_features=period_features)
-        all_predictions.append(final_predictions)
+            predictions = model.predict(period_features)
+            all_inter_predictions.append(predictions)
+            if autoregressive:
+                autoregessive_feature = get_autoregressive_feature(eval_delta = eval_delta, predict_delta=predict_delta, teacher_forcing=teacher_forcing, predictions=predictions, period_labels=period_labels, period_features=period_features)
+            final_predictions = get_final_predictions(predict_delta=predict_delta, eval_delta=eval_delta, predictions=predictions, period_features=period_features)
+            all_predictions.append(final_predictions)
 
     evaluate_model_by_period(all_predictions, labels, metrics=metrics, model_name=model.__class__.__name__, dataset_name = dataset_name, eval_delta=eval_delta, teacher_forcing=teacher_forcing, features=features, lat_features=lat_features)
 
@@ -156,18 +178,18 @@ if __name__ == "__main__":
         inputs_path_intpp = INPUTS_PATH_INTPP_BOATS,
         predict_delta=False,
         by_period=False,
-        flat=True,
-        contextual=False,
+        flat=False,
+        contextual=True,
         debug=False
     )
     boats_config_test = BoatsConfig(
         inputs_path_tos = TEST_INPUTS_PATH_TOS_BOATS,
         outputs_path = TEST_OUTPUTS_PATH_BOATS,
         inputs_path_intpp = TEST_INPUTS_PATH_INTPP_BOATS,
-        by_period=True,
+        by_period=False,
         predict_delta=False,
         flat=False,
-        contextual=False,
+        contextual=True,
         debug=False
     )
 

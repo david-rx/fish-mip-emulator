@@ -11,6 +11,8 @@ scikit-learn = "^1.1.2"
 xarray = "^2022.10.0"
 debugpy = "^1.6.3"
 wandb = "^0.13.5"
+xgboost = "^1.7.2"
+pca = "^1.8.5"
 
 [tool.poetry.dev-dependencies]
 

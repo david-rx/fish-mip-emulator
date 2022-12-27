@@ -21,7 +21,7 @@ class SimpleNN(nn.Module):
             nn.Linear(WIDTH, WIDTH), nn.ReLU(), nn.Linear(WIDTH, WIDTH), nn.ReLU(), nn.Linear(WIDTH, WIDTH), nn.ReLU())
 
         self.final = nn.Linear(WIDTH, output_size)
-        torch.nn.init.constant_(self.final.bias, 30) #Start with the mean roughly!
+        # torch.nn.init.constant_(self.final.bias, 30) #Start with the mean roughly!
 
 
     def forward(self, x):
@@ -30,7 +30,7 @@ class SimpleNN(nn.Module):
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
         x = F.relu(self.fc5(x))
-        x = self.semifinal_sequence(x)
+        # x = self.semifinal_sequence(x)
 
         x = self.final(x)
         return x

@@ -1,12 +1,12 @@
-BATCH_SIZE = 4 ** 7
-NUM_EPOCHS = 2
+BATCH_SIZE = 16
+NUM_EPOCHS = 16
 LEARNING_RATE = 0.0001
 
 from dataclasses import dataclass
 import wandb
 
 from emulator.models.nn.helpers import compute_grad_norm, rebalance
-USE_WNB = True
+USE_WNB = False
 
 if USE_WNB:
     wandb.init("simple-nn")
@@ -43,7 +43,7 @@ class NNConfig:
     lr_scheduler: str = "exponential"
     optimizer: str = "adamw"
 
-
+ 
 class TensorTupleDataset(Dataset):
 
     def __init__(self, first_tensor: torch.Tensor, second_tensor: torch.Tensor) -> None:
@@ -105,14 +105,14 @@ class NNRegressor(Model):
 
     def fit(self, train_data: np.ndarray, train_labels: np.ndarray, evaluation_data: torch.Tensor = None, evaluation_labels: torch.Tensor = None, rebalance_data = False) -> None:
         print(f"starting fit")
-        if rebalance_data:
-            train_data, train_labels = rebalance(train_data, train_labels)
-            print("data rebalanced")
+        train_data = train_data.astype(np.float32)
+        train_labels = train_labels.astype(np.float32)
         train_data_tensor = torch.tensor(train_data)
         train_labels_tensor = torch.tensor(train_labels)
         self.train(train_data=train_data_tensor, train_labels=train_labels_tensor, evaluation_data=evaluation_data, evaluation_labels=evaluation_labels)
 
     def predict(self, data: np.ndarray) -> np.ndarray:
+        data = data.astype(np.float32)
         data_tensor = torch.tensor(data)
         dataset = TensorTupleDataset(first_tensor = data_tensor, second_tensor=data_tensor)
         dataloader = DataLoader(dataset, batch_size = BATCH_SIZE)

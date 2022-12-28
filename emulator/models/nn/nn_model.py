@@ -1,6 +1,7 @@
-BATCH_SIZE = 8
-NUM_EPOCHS = 128
+BATCH_SIZE = 32
+NUM_EPOCHS = 32
 LEARNING_RATE = 0.0001
+DIVERSITY_SCALE = .0001
 
 from dataclasses import dataclass
 import wandb
@@ -8,7 +9,7 @@ import wandb
 from emulator.models.nn.helpers import compute_grad_norm
 from emulator.models.nn.lstm import LSTM
 
-USE_WNB = False
+USE_WNB = True
 
 from tqdm import tqdm
 from emulator.models.model import Model
@@ -89,12 +90,15 @@ class NNRegressor(Model):
                 labels = batch[1].to(self.device)
                 predictions = self.net.forward(inputs)
                 loss = self.loss_fn(predictions, labels.reshape(predictions.shape))
+                prediction_entropy = compute_prediction_entropy(predictions)
+                print("prediction entropy", prediction_entropy)
+                # loss = loss - prediction_entropy * DIVERSITY_SCALE
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), 10000)
 
                 if index % log_steps == 0:
                     grad_norm = compute_grad_norm(self.net)
-                    prediction_entropy = compute_prediction_entropy(predictions)
+                    
                     if USE_WNB:
                         wandb.log({"train loss": loss, "epoch": epoch, "grad norm": grad_norm, "predicted max": predictions.max(), "labels max": labels.max(),
                         "entropy": prediction_entropy})
@@ -145,8 +149,7 @@ class NNRegressor(Model):
 
 def compute_prediction_entropy(predictions):
     # Convert the predictions tensor to a numpy array
-    predictions_np = predictions.detach().cpu().numpy()
     # Calculate the entropy of the predictions
-    entropy = -np.sum(predictions_np * np.log(predictions_np + 1e-8), axis=-1)
+    entropy = -torch.sum(predictions * torch.log(predictions + 1e-6), axis=-1)
     # Return the mean entropy across the batch
-    return np.mean(entropy)
+    return torch.mean(entropy)

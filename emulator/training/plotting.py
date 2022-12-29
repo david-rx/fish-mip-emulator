@@ -40,11 +40,17 @@ def plot_animated_map(predictions: List[float], labels: List[float], latitudes: 
     """
     Plots an animated map of the predictions and labels.
     """
+    print("num years", len(predictions))
     indices_to_plot = np.random.randint(low = 0, high=len(labels), size=num_to_plot)
     # latitudes, longitudes = latitudes[indices_to_plot], longitudes[indices_to_plot]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
     yearly_difference = np.average(np.absolute(np.array(predictions) - labels.reshape(np.array(predictions).shape)))
+    predictions = np.array(predictions)
+    predictions = np.array(predictions).reshape(predictions.shape[0], -1)
+    labels = np.array(labels).reshape(labels.shape[0], -1)
     print(f"yearly diff: {yearly_difference}")
+
+    print(f"predictions shape: {predictions.shape} and labels shape: {labels.shape} lat shape: {latitudes.shape} long shape: {longitudes.shape}")
 
     def update(year):
         # Use the year to index into your prediction and label arrays

@@ -1,7 +1,11 @@
 # fish-mip-emulator
-A machine-learning emulator for the ocean biome's response to climate change.
 
-Emulates models in the Fish-MIP suite of models. Currently supports MACROECOLOGICAL and BOATS models.
+A machine-learning emulator for ocean life's response to climate change.
+
+This repo emulates the FishMIP suite of models: https://www.isimip.org/about/marine-ecosystems-fisheries/
+
+Emulated MACROECOLOGICAL predictions:
+![](https://github.com/fish-mip-emulator/outputs/visualizations_macro/animated_HistGradientBoostingRegressor_MACRO_500_map.gif)
 
 # how to use
 

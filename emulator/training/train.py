@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import random
 from sklearn.ensemble import GradientBoostingRegressor, HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.multioutput import MultiOutputRegressor
+
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVR
@@ -51,6 +53,10 @@ def train(dataset_name: str, train_config: BoatsConfig, test_config: BoatsConfig
         train_features = scaler.fit_transform(pca.run(train_features))
         test_features = scaler.transform(pca.run(test_features))
         eval_features = scaler.transform(pca.run(eval_features))
+    # else:
+    #     train_features = scaler.fit_transform(train_features)
+    #     eval_features = scaler.transform(eval_features)
+    #     test_features = scaler.transform(test_features)
 
     # test_features = pca.run(ss.transform(test_features))
     # eval_features = pca.run(ss.transform(eval_features))
@@ -77,10 +83,11 @@ def train(dataset_name: str, train_config: BoatsConfig, test_config: BoatsConfig
     print(f"test features mean is {test_features.mean()} with stdev {test_features.std()}")
 
     #fit models
-    eval_metrics = [metrics.mean_squared_error, metrics.mean_absolute_error, metrics.r2_score]
-    # models = [tree.DecisionTreeRegressor(), XGBRegressor(objective='reg:squarederror'), NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1])]
+    eval_metrics = [metrics.mean_squared_error, metrics.mean_absolute_error, metrics.r2_score] #NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1])
+    models = [tree.DecisionTreeRegressor(), HistGradientBoostingRegressor(max_iter=100), RandomForestRegressor()]
         # RandomForestRegressor(), 
         # HistGradientBoostingRegressor(max_iter=100), NNRegressor(input_size = train_features.shape[1], output_size = train_labels.shape[1])]
+        #MultiOutputRegressor(HistGradientBoostingRegressor(max_iter=2))
     if train_config.contextual:
         nn_features_train, nn_labels_train = make_lstm_features(train_features, train_labels)
         nn_features_eval, nn_labels_eval = make_lstm_features(eval_features, eval_labels)
@@ -91,7 +98,7 @@ def train(dataset_name: str, train_config: BoatsConfig, test_config: BoatsConfig
         num_labels = 1
 
 
-    models = [NNRegressor(input_size=nn_features_train.shape[-1], output_size=num_labels, model="lstm")]
+    # models = [NNRegressor(input_size=nn_features_train.shape[-1], output_size=num_labels, model="lstm")]
     for model in models:
         print("model", model)
         if model.__class__ == NNRegressor:
@@ -101,7 +108,7 @@ def train(dataset_name: str, train_config: BoatsConfig, test_config: BoatsConfig
         else:
             model.fit(train_features, train_labels)
         eval_by_period(model=model, features=test_features.copy(), labels=test_labels, metrics=eval_metrics, dataset_name=dataset_name,
-            teacher_forcing=False, eval_delta=test_config.predict_delta, predict_delta=train_config.predict_delta, pca=pca, lat_features=train_config.flat,
+            teacher_forcing=False, eval_delta=test_config.predict_delta, predict_delta=train_config.predict_delta, pca=None, lat_features=train_config.flat,
             autoregressive=train_config.flat)
     
     evaluate_models(models, eval_features, eval_labels, eval_metrics, dataset_name=dataset_name)
@@ -178,19 +185,39 @@ if __name__ == "__main__":
         inputs_path_intpp = INPUTS_PATH_INTPP_BOATS,
         predict_delta=False,
         by_period=False,
-        flat=False,
-        contextual=True,
-        debug=False
+        flat=True,
+        contextual=False,
+        debug=False 
     )
     boats_config_test = BoatsConfig(
         inputs_path_tos = TEST_INPUTS_PATH_TOS_BOATS,
         outputs_path = TEST_OUTPUTS_PATH_BOATS,
         inputs_path_intpp = TEST_INPUTS_PATH_INTPP_BOATS,
-        by_period=False,
+        by_period=True,
         predict_delta=False,
         flat=False,
-        contextual=True,
+        contextual=False,
         debug=False
     )
+    # boats_config_train = BoatsConfig(
+    #     inputs_path_tos = INPUTS_PATH_TOS,
+    #     outputs_path = OUTPUTS_PATH,
+    #     inputs_path_intpp = INPUTS_PATH_INTPP,
+    #     predict_delta=False,
+    #     by_period=False,
+    #     flat=True,
+    #     contextual=False,
+    #     debug=False 
+    # )
+    # boats_config_test = BoatsConfig(
+    #     inputs_path_tos = TEST_INPUTS_PATH_TOS,
+    #     outputs_path = TEST_OUTPUTS_PATH,
+    #     inputs_path_intpp = TEST_INPUTS_PATH_INTPP,
+    #     by_period=True,
+    #     predict_delta=False,
+    #     flat=False,
+    #     contextual=False,
+    #     debug=False
+    # )
 
     train(dataset_name=DatasetName.BOATS.value, train_config = boats_config_train, test_config = boats_config_test)

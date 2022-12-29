@@ -1,6 +1,6 @@
-BATCH_SIZE = 32
-NUM_EPOCHS = 32
-LEARNING_RATE = 0.0001
+BATCH_SIZE = 512
+NUM_EPOCHS = 1
+LEARNING_RATE = 0.01
 DIVERSITY_SCALE = .0001
 
 from dataclasses import dataclass
@@ -71,7 +71,7 @@ class NNRegressor(Model):
             self.net = LSTM(input_size=input_size, output_size=output_size, hidden_size=256, num_layers=16).to(self.device)
         self.optimizer = optim.AdamW(self.net.parameters(), lr=lr)
         self.loss_fn = nn.MSELoss()
-        # self.scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=.9)
+        self.scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=.9)
 
     def train(self, train_data: torch.tensor, train_labels: torch.tensor, evaluation_data: torch.Tensor = None, evaluation_labels: torch.Tensor = None):
         if USE_WNB:
@@ -86,12 +86,15 @@ class NNRegressor(Model):
 
             for index, batch in tqdm(enumerate(dataloader), total=len(dataloader)):
 
+                if index > 1000:
+                    break
+
                 inputs = batch[0].to(self.device)
                 labels = batch[1].to(self.device)
                 predictions = self.net.forward(inputs)
                 loss = self.loss_fn(predictions, labels.reshape(predictions.shape))
                 prediction_entropy = compute_prediction_entropy(predictions)
-                print("prediction entropy", prediction_entropy)
+                # print("prediction entropy", prediction_entropy)
                 # loss = loss - prediction_entropy * DIVERSITY_SCALE
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), 10000)

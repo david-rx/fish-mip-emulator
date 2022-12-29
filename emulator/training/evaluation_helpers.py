@@ -43,31 +43,39 @@ def evaluate_model_by_period(all_predictions, all_labels, metrics: List[Callable
     by_period_overall_results(all_predictions[:-120], all_labels[:-120], metrics)
     print(f"model {model_name} has prediction shape {all_predictions[0].shape} ---------------------------------------")
 
+    print("first all predictions len", len(all_predictions))
+
     yearly_predictions = all_predictions[0:len(all_predictions):12]
     yearly_labels = all_labels[0:len(all_labels):12]
     print(f"yearly predictions shape len {len(yearly_predictions)} shape {yearly_predictions[0].shape}")
     print(f"yearly labels len {len(yearly_labels)} shape {yearly_labels[0].shape}")
 
+    print("second all predictions len", len(all_predictions))
+
+
+    predictions_to_plot = yearly_predictions
+    labels_to_plot = yearly_labels
+
     latitude_features_single_period  = np.repeat(np.expand_dims(np.expand_dims(np.arange(90, -89.5, -1), axis=1), axis=0), 360, axis=-1)
-    num_periods = len(yearly_labels)
+    num_periods = len(yearly_predictions)
     if not lat_features:
         latitudes = np.repeat(np.expand_dims(latitude_features_single_period, axis=0), num_periods, axis=0).reshape(num_periods, -1, 1)
         longitude_features_single_period = np.repeat(np.expand_dims(np.expand_dims(np.arange(-179.5, 180, 1), axis=0), axis=0), 180, axis=0)
         longitudes = np.repeat(np.expand_dims(longitude_features_single_period, axis=0), num_periods, axis=0).reshape(num_periods, -1, 1)
         plottable_predictions = yearly_predictions
         plottable_labels = yearly_labels
-        print(f"shapes are lat {latitudes.shape} long {longitudes.shape} preds {plottable_predictions.shape} labels {plottable_labels.shape}")
+        # print(f"shapes are lat {latitudes.shape} long {longitudes.shape} preds {plottable_predictions.shape} labels {plottable_labels.shape}")
     else:
         latitudes = features[0, :, 3]
         longitudes = features[0, :, 4]
 
-        latitudes = np.tile(latitudes, (len(yearly_predictions), 1))
-        longitudes = np.tile(longitudes, (len(yearly_predictions), 1))
-        plottable_predictions = np.array(yearly_predictions).reshape(len(yearly_predictions), latitudes.shape[1], -1)
-        plottable_labels = yearly_labels.reshape(len(yearly_labels), latitudes.shape[1], -1)
+        latitudes = np.tile(latitudes, (num_periods, 1))
+        longitudes = np.tile(longitudes, (num_periods, 1))
+        plottable_predictions = np.array(predictions_to_plot).reshape(num_periods, latitudes.shape[1], -1)
+        plottable_labels = np.array(labels_to_plot).reshape(num_periods, latitudes.shape[1], -1)
         print(f"shapes are lat {latitudes.shape} long {longitudes.shape} preds {plottable_predictions.shape} labels {plottable_labels.shape}")
-    
-    plot_animated_map(predictions=plottable_predictions, labels=plottable_labels, latitudes=latitudes, longitudes=longitudes, model_name=model_name, dataset_name=dataset_name, contextual=not lat_features)
+    print("all predictions len", len(all_predictions))
+    plot_animated_map(predictions=predictions_to_plot, labels=labels_to_plot, latitudes=latitudes, longitudes=longitudes, model_name=model_name, dataset_name=dataset_name, contextual=not lat_features)
 
     plotting_period = 120
 

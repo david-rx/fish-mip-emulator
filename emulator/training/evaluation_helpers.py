@@ -4,7 +4,7 @@ import numpy as np
 import os
 from typing import List, Callable
 
-from emulator.training.plotting import plot_animated_map, plot_map
+from emulator.training.plotting import plot_animated_map, plot_global_integral, plot_map
 
 def by_period_overall_results(all_predictions, all_labels, metrics):
     # Calculate overall scores for the model's performance on the entire dataset
@@ -31,6 +31,7 @@ def evaluate_model_by_period(all_predictions, all_labels, metrics: List[Callable
     """
     Evaluates the predictions by period, and saves the results to a csv file.
     """
+    unweighted_global_sum(all_predictions, all_labels, model_name)
     scores = defaultdict(list)
     print("true overall results: ")
     print(f"pred shapes: len: {len(all_predictions)}, 1st shape{all_predictions[0].shape}")
@@ -141,3 +142,47 @@ def evaluate_model_spatial_by_period_spatial(predictions, labels, metrics: List[
         scores["sample metric"].append(metrics[1]([prediction[0, 0]], [label[0, 0]]))
         df = pd.DataFrame.from_dict(scores)
         df.to_csv(os.path.join("outputs/evaluation_results", f"spatial_period_results_{dataset_name}_{model_name}{'_delta' if eval_delta else ''}{'_forced' if teacher_forcing else ''}.csv"))
+
+def yearly_global_integral(predictions, labels):
+    """
+    For each timestep, calculates the integral of the predictions and labels over the entire globe.
+    Accounts for the fact that the latitudes are not equally spaced.
+    """
+    yearly_predictions = np.array(predictions).reshape(-1, 12, 180, 360)
+    yearly_labels = np.array(labels).reshape(-1, 12, 180, 360)
+    yearly_predictions_integral = np.zeros(yearly_predictions.shape[0])
+    yearly_labels_integral = np.zeros(yearly_labels.shape[0])
+    lat, lon = np.meshgrid(np.linspace(-90, 90), np.linspace(-180, 180), indexing='ij')
+    for year_index, (year_predictions, year_labels) in enumerate(zip(yearly_predictions, yearly_labels)):
+        for month_index, (month_predictions, month_labels) in enumerate(zip(year_predictions, year_labels)):
+            yearly_predictions_integral[year_index] += np.trapz(np.trapz(month_predictions, axis=1), axis=0)
+            yearly_labels_integral[year_index] += np.trapz(np.trapz(month_labels, axis=1), axis=0)
+    plot_global_integral(yearly_predictions_integral, yearly_labels_integral)
+    return yearly_predictions_integral, yearly_labels_integral
+
+def weighted_global_sum(predictions, labels):
+    """
+    
+    """
+
+    lat, lon = np.meshgrid(np.linspace(-90, 90, lat.shape[0]),
+                       np.linspace(-180, 180, lon.shape[0]), indexing='ij')
+    # Weight the label values by the cosine of the latitude
+    weighted_labels = labels * np.cos(np.deg2rad(lat))
+
+    # Integrate the weighted labels over all latitudes and longitudes
+    integral = np.trapz(np.trapz(weighted_labels, x=lon, axis=1), x=lat)
+    
+def unweighted_global_sum(predictions, labels, model_name):
+    """
+    Sum over all latitudes and longitudes
+    """
+    yearly_predictions_integral = np.zeros(len(predictions))
+    yearly_labels_integral = np.zeros(len(labels))
+    for index, (period_predictions, preriod_labels) in enumerate(zip(predictions, labels)):
+            yearly_predictions_integral[index] = np.sum(period_predictions)
+            yearly_labels_integral[index] = np.sum(preriod_labels)
+    print("first difference", yearly_predictions_integral - yearly_labels_integral[0])
+    print("last difference", yearly_predictions_integral - yearly_labels_integral[-1])
+    plot_global_integral(yearly_predictions_integral, yearly_labels_integral, model_name)
+    return yearly_predictions_integral, yearly_labels_integral

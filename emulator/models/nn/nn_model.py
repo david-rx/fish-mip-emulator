@@ -1,13 +1,16 @@
-BATCH_SIZE = 512
+BATCH_SIZE = 16
 NUM_EPOCHS = 1
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.001
 DIVERSITY_SCALE = .0001
 
 from dataclasses import dataclass
 import wandb
+from emulator.models.nn.cnn import ConvNeuralNet
+from emulator.models.nn.cnn_lstm import CNNLSTM
 
 from emulator.models.nn.helpers import compute_grad_norm
 from emulator.models.nn.lstm import LSTM
+from emulator.models.nn.unet import UNet
 
 USE_WNB = True
 
@@ -63,12 +66,15 @@ class NNRegressor(Model):
     """
 
     def __init__(self, input_size: int, output_size: int, model: str, lr=LEARNING_RATE) -> None:
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "mps"
         self.model = model
         if model == "feedfoward":
             self.net = SimpleNN(input_size = input_size, output_size = output_size).to(self.device)
         elif model == "lstm":
             self.net = LSTM(input_size=input_size, output_size=output_size, hidden_size=256, num_layers=16).to(self.device)
+        elif model == "cnn":
+            self.net = UNet(n_channels=input_size, n_classes=output_size).to(self.device)
+            # self.net = ConvNeuralNet(output_size=output_size, num_channels=input_size).to(self.device)
         self.optimizer = optim.AdamW(self.net.parameters(), lr=lr)
         self.loss_fn = nn.MSELoss()
         self.scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=.9)
@@ -85,9 +91,6 @@ class NNRegressor(Model):
         for epoch in tqdm(range(NUM_EPOCHS)):
 
             for index, batch in tqdm(enumerate(dataloader), total=len(dataloader)):
-
-                if index > 1000:
-                    break
 
                 inputs = batch[0].to(self.device)
                 labels = batch[1].to(self.device)
@@ -135,7 +138,7 @@ class NNRegressor(Model):
         all_predictions = []
         with torch.no_grad():
             for batch in dataloader:
-                predictions = self.net(batch[0].to(self.device))
+                predictions = self.net.forward(batch[0].to(self.device))
                 all_predictions.extend(predictions.cpu().numpy())
 
         return np.concatenate(all_predictions)

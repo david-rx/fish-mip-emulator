@@ -88,11 +88,8 @@ def make_lstm_features_3d(features: np.array, labels: np.array) -> Tuple[np.arra
     return sequences_arr, labels[20:].flatten()
 
 
-
-def make_lstm_features_3d2(features: np.array):
-    """
-    Input array is a 3d array of shape(num_time_steps, examples_per_timestamp, num_features)
-    We want to convert it to (num_examples, num_time_steps, num_features)
-    Output shape should be (input_shape[1] * (input_shape[0] - 20), 20, input_shape[2])
-    """
-    pass
+# if model.model == "lstm":
+#             if features.ndim == 3:
+#                 lstm_features, lstm_labels = make_lstm_features_3d(features, labels)
+#             else:
+#                 lstm_features, lstm_labels = make_lstm_features(features, labels)

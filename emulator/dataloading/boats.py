@@ -89,7 +89,6 @@ class BoatsDataloader(Dataloader):
         latitude_features_single_period  = np.repeat(np.expand_dims(np.expand_dims(np.arange(90, -89.5, -1), axis=1), axis=0), 360, axis=-1)
         # latitude_features_single_period = np.repeat(np.expand_dims(np.expand_dims(np.arange(-89.5, 90, 1), axis=1), axis=0), 360, axis=0)
         latitude_features = np.repeat(np.expand_dims(latitude_features_single_period, axis=0), num_periods, axis=0).reshape(num_periods, -1, 1)
-        print(latitude_features.shape)
         longitude_features_single_period = np.repeat(np.expand_dims(np.expand_dims(np.arange(-179.5, 180, 1), axis=0), axis=0), 180, axis=0)
         longitude_features = np.repeat(np.expand_dims(longitude_features_single_period, axis=0), num_periods, axis=0).reshape(num_periods, -1, 1)
         # x = np.cos(np.deg2rad(latitude_features)) * np.cos(np.deg2rad(longitude_features))
@@ -132,7 +131,7 @@ class BoatsDataloader(Dataloader):
                 label_fill_value = outputs_dataset["tcb"]._FillValue)
         return features, labels
         
-    def get_contextual_features(self, inputs_dataset_tos, inputs_dataset_intpp, outputs_dataset, predict_delta: bool) -> Tuple[np.ndarray, np.ndarray]:
+    def get_contextual_features_2(self, inputs_dataset_tos, inputs_dataset_intpp, outputs_dataset, predict_delta: bool) -> Tuple[np.ndarray, np.ndarray]:
         shifted_tcb = outputs_dataset["tcb"][:-1]
         tos = np.asarray(inputs_dataset_tos["tos"][1:])
         intpp = np.asarray(inputs_dataset_intpp["intpp"][1:])
@@ -147,14 +146,28 @@ class BoatsDataloader(Dataloader):
         fill_values = [inputs_dataset_tos["tos"]._FillValue, inputs_dataset_intpp["intpp"]._FillValue, outputs_dataset["tcb"]._FillValue]
         features, labels = replace_fill(features, labels, fill_values = fill_values)
         return features, labels
-        # pca_results = self.pca.fit_transform(features)
-        # print(pca_results)
-        # print(features.shape)
-
-        # print(pca_results.keys())
-        # pca_features = pca_results["PC"].to_numpy()
-        # print(type(pca_features))
-        # print(pca_results["topfeat"])
-        # print(f"pca features shape is", pca_features.shape)
-        # print("labels shape: ", labels.shape)
-        # return pca_features, labels
+    
+    def get_contextual_features(self, inputs_dataset_tos, inputs_dataset_intpp, outputs_dataset, predict_delta: bool) -> Tuple[np.ndarray, np.ndarray]:
+        shifted_tcb = outputs_dataset["tcb"]
+        tos = np.asarray(inputs_dataset_tos["tos"])
+        intpp = np.asarray(inputs_dataset_intpp["intpp"])
+        tcb = np.asarray(outputs_dataset["tcb"])
+        print("tos shape", tos.shape)
+        autoregressive = True
+        if autoregressive:
+            shifted_tcb = shifted_tcb[:-1]
+            tos = tos[1:]
+            intpp = intpp[1:]
+            tcb = tcb[1:]
+            features = np.stack([tos, intpp, tcb], axis=1)
+        else:
+            features = np.stack([tos, intpp], axis=1)
+        
+        reshaped_shifted_tcb = shifted_tcb.reshape(shifted_tcb.shape[0], shifted_tcb.shape[1] * shifted_tcb.shape[2])
+        print("features shape", features.shape) 
+        labels = tcb
+        labels = labels.reshape(labels.shape[0], labels.shape[1] * labels.shape[2])
+        print(f"shapes are: autoregressive {shifted_tcb.shape}, intpp {intpp.shape}, tos {tos.shape} all {features.shape}, labels start {tcb.shape}, labels {labels.shape}")
+        fill_values = [inputs_dataset_tos["tos"]._FillValue, inputs_dataset_intpp["intpp"]._FillValue, outputs_dataset["tcb"]._FillValue]
+        features, labels = replace_fill(features, labels, fill_values = fill_values)
+        return features, labels

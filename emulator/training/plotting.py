@@ -81,3 +81,16 @@ def plot_animated_map(predictions: List[float], labels: List[float], latitudes: 
 
     anim.save(os.path.join(f"outputs/visualizations{'_contextual' if contextual else ''}", f"animated_{model_name}_{dataset_name}_map.gif"), dpi=80, writer='Pillow')
     plt.close(fig)
+
+def plot_global_integral(yearly_predictions, yearly_labels, model_name) -> None:
+    """
+    Plots the predictions and labels by year.
+    """
+    fig, ax = plt.subplots()
+    ax.plot(yearly_predictions, label="predictions")
+    ax.plot(yearly_labels, label="labels")
+    ax.set_xlabel("year")
+    ax.set_ylabel("global biomass integral (g)")
+    ax.set_title("Global Biomass Integral")
+    ax.legend()
+    fig.savefig(os.path.join("outputs/visualizations", f"global_integral_{model_name}.png"))

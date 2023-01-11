@@ -18,6 +18,7 @@ TEST_INPUTS_PATH_TOS = "../Emulator/Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ss
 TEST_INPUTS_PATH_INTPP = "../Emulator/Inputs/MACROECOLOGICAL/gfdl-esm4_r1i1p1f1_ssp585_intpp_onedeg_global_annual_2015_2100.nc"
 TEST_OUTPUTS_PATH = "../Emulator/Outputs/MACROECOLOGICAL/macroecological_gfdl-esm4_nobasd_ssp585_nat_default_tcb_global_annual_2015_2100.nc"
 
+
 class MacroecologicalDataLoader(Dataloader):
     def __init__(self, inputs_path_tos: str, outputs_path: str, inputs_path_intpp, mask_tos: bool = False, mask_intpp: bool = False) -> None:
         """
